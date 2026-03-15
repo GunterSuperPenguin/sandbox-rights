@@ -11,6 +11,8 @@ CreateConVar( "sv_ban_cmenu","0", FCVAR_REPLICATED )
 CreateConVar( "sv_rights_superadmins","1", FCVAR_REPLICATED )
 CreateConVar( "sv_rights_admins","0",FCVAR_REPLICATED )
 CreateConVar( "sv_rights_operators","0",FCVAR_REPLICATED )
+CreateConVar( "sv_rights_maxvelocity_enabale", "0", FCVAR_REPLICATED )
+CreateConVar( "sv_rights_maxvelocity", "600", {nil}, nil, 0, 3500 )
 
 local whitelist = {}
 
@@ -41,7 +43,9 @@ hook.Add( "InitPostEntity", "Get file settings", function()
 	if file.Exists( "rights_settings.txt", "DATA" ) then
 		local tbl = util.JSONToTable(file.Read( "rights_settings.txt", "DATA" ))
 		for k,v in pairs( tbl ) do
-			pcall( function() GetConVar(k):SetBool(v) end )
+			pcall( function()
+				GetConVar(k):SetString( tostring(v) )
+			end )
 		end
 	end
 	if file.Exists( "rights_whitelist.txt", "DATA" ) and util.JSONToTable( file.Read("rights_whitelist.txt", "DATA") ) ~= {} then
@@ -62,6 +66,8 @@ hook.Add( "ShutDown", "Save rights data", function()
 	tbl[ "sv_rights_superadmins" ] = GetConVar( "sv_rights_superadmins" ):GetBool()
 	tbl[ "sv_rights_admins" ] = GetConVar( "sv_rights_admins" ):GetBool()
 	tbl[ "sv_rights_operators" ] = GetConVar( "sv_rights_operators" ):GetBool()
+	tbl[ "sv_rights_maxvelocity_enabale" ] = GetConVar( "sv_rights_maxvelocity_enabale" ):GetBool()
+	tbl[ "sv_rights_maxvelocity" ] = GetConVar( "sv_rights_maxvelocity" ):GetFloat()
 	file.Write( "rights_settings.txt", util.TableToJSON( tbl ) )
 	file.Write( "rights_whitelist.txt", util.TableToJSON( whitelist ) )
 end )
@@ -79,6 +85,7 @@ if SERVER then
 		net.Start( "Update cl whitelist" )
 		net.WriteTable( whitelist, true )
 		net.Broadcast()
+		hook.Run( "Rights_UpdateSpeeds" )
 	end )
 
 	net.Receive( "Add to whitelist", function( len, ply )
@@ -88,6 +95,7 @@ if SERVER then
 		net.Start( "Update cl whitelist" )
 		net.WriteTable( whitelist, true )
 		net.Broadcast()
+		hook.Run( "Rights_UpdateSpeeds" )
 	end )
 
 	net.Receive( "Ask update cl whitelist", function( len, ply )
@@ -188,7 +196,60 @@ if SERVER then
 			return CheckRights( ply )
 		end
 	end )
+
+	hook.Add( "GravGunPunt", "BanGravGunPunt", function ( ply, _ )
+				if GetBan( "sv_ban_gravgun" ) then
+			return CheckRights( ply )
+		end
+	end )
 end
+
+	-- Max Speed
+	local DefaultMaxSpeed = 600
+	local DefaultRun = 400
+	local DefaultWalk = 200
+	local DefaultAlt = 100
+
+	local function ApplyRightsSpeed( ply )
+		if not IsValid( ply ) then return end
+		local is_enabled = GetConVar( "sv_rights_maxvelocity_enabale" ):GetBool()
+		local max_vel = GetConVar( "sv_rights_maxvelocity" ):GetFloat()
+
+		if max_vel <= 0 then max_vel = 1 end
+		if is_enabled and not CheckRights( ply ) then
+			local ratio = max_vel / DefaultMaxSpeed
+
+			ply:SetMaxSpeed( max_vel )
+			ply:SetRunSpeed( DefaultRun * ratio )
+			ply:SetWalkSpeed( DefaultWalk * ratio )
+			ply:SetSlowWalkSpeed( DefaultAlt * ratio )
+		else
+			ply:SetMaxSpeed( DefaultMaxSpeed )
+			ply:SetRunSpeed( DefaultRun )
+			ply:SetWalkSpeed( DefaultWalk )
+			ply:SetSlowWalkSpeed( DefaultAlt )
+		end
+	end
+
+	hook.Add( "PlayerSpawn", "Rights_SetSpeedOnSpawn", function( ply )
+		timer.Simple( 0.1, function()
+			ApplyRightsSpeed( ply )
+		end )
+	end )
+
+	local function UpdateAllSpeeds()
+		for _, ply in player.Iterator() do
+			ApplyRightsSpeed( ply )
+		end
+	end
+
+	hook.Add( "Rights_UpdateSpeeds", "Rights_SpeedUpdate_Whitelist", UpdateAllSpeeds )
+	cvars.AddChangeCallback( "sv_rights_maxvelocity_enabale", UpdateAllSpeeds, "Rights_SpeedUpdate_Enable" )
+	cvars.AddChangeCallback( "sv_rights_maxvelocity", UpdateAllSpeeds, "Rights_SpeedUpdate_Vel" )
+	cvars.AddChangeCallback( "sv_rights_active", UpdateAllSpeeds, "Rights_SpeedUpdate_Active" )
+	cvars.AddChangeCallback( "sv_rights_superadmins", UpdateAllSpeeds, "Rights_SpeedUpdate_SA" )
+	cvars.AddChangeCallback( "sv_rights_admins", UpdateAllSpeeds, "Rights_SpeedUpdate_A" )
+	cvars.AddChangeCallback( "sv_rights_operators", UpdateAllSpeeds, "Rights_SpeedUpdate_Op" )
 
 hook.Add( "CanProperty", "BanCMenu", function( ply )
 	if GetBan( "sv_ban_cmenu" ) then
@@ -318,6 +379,8 @@ if CLIENT then
 				but:SetValue( "#rights.help.listhelp" )
 			end
 			panel:AddItem( but )
+			panel:CheckBox( "#rights.checkbox.maxspeed", "sv_rights_maxvelocity_enabale" )
+			panel:NumSlider( "#rights.numslider.maxspeed", "sv_rights_maxvelocity", 0, 3500 )
 			panel:Help( "#rights.help.ban" )
 			panel:CheckBox( "#rights.checkbox.spawnmenu", "sv_ban_spawn" )
 			panel:CheckBox( "#rights.checkbox.property", "sv_ban_cmenu" )
