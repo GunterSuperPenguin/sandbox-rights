@@ -6,6 +6,8 @@
 
 **Sandbox Rights** is an addon designed to restrict the rights of all players on the server. It allows you to disable or enable specific sandbox activities for everyone.
 
+(Utilities -> Admin -> Ritghts)
+
 
 ## 🛠 Features
 
