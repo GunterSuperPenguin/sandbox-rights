@@ -37,4 +37,5 @@ This addon provides granular control over the following actions:
 
 ## 🤝 Credits
 * [@boblikut](https://github.com/boblikut) — Code;
-* [@GunterSuperPenguin](https://github.com/GunterSuperPenguin) — Concept, Code, Media Creator.
+* [@GunterSuperPenguin](https://github.com/GunterSuperPenguin) — Concept, Code, Media Creator;
+* [@RIBA1460](https://github.com/RIBA1460) — Hebrew Translator.
