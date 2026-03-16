@@ -34,5 +34,5 @@ This addon provides granular control over the following actions:
 
 
 ## 🤝 Credits
-* @boblikut — Code;
-* @GunterSuperPenguin — Concept, Code, Media Creator.
+* [@boblikut](https://github.com/boblikut) — Code;
+* [@GunterSuperPenguin](https://github.com/GunterSuperPenguin) — Concept, Code, Media Creator.
