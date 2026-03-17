@@ -82,6 +82,7 @@ if SERVER then
 		if !ply:IsListenServerHost() then return end
 		local id = net.ReadString()
 		table.RemoveByValue( whitelist,id )
+		file.Write( "rights_whitelist.txt", util.TableToJSON( whitelist ) )
 		net.Start( "Update cl whitelist" )
 		net.WriteTable( whitelist, true )
 		net.Broadcast()
@@ -92,6 +93,7 @@ if SERVER then
 		if !ply:IsListenServerHost() then return end
 		local id = net.ReadString()
 		whitelist[#whitelist + 1] = id
+		file.Write( "rights_whitelist.txt", util.TableToJSON( whitelist ) )
 		net.Start( "Update cl whitelist" )
 		net.WriteTable( whitelist, true )
 		net.Broadcast()
